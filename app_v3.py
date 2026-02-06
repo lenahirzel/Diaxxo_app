@@ -70,12 +70,6 @@ if st.session_state.analysis_done:
     st.subheader("CH3 Summary")
     st.dataframe(flat_ch3)
 
-    # --- Determine correct detection column name and normalize it ---
-    st.caption("Debug: available columns in summaries")
-    st.write("CH2 columns:", list(flat_ch2.columns))
-    st.write("CH3 columns:", list(flat_ch3.columns))
-
-
     # Add numeric helper column for sorting
     for df in [flat_ch2, flat_ch3]:
         df["Loaded_num"] = df["Loaded"].str.extract(r"(\d+)").astype(float)
