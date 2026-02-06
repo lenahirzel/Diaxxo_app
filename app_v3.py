@@ -24,11 +24,16 @@ uploaded_file = st.file_uploader(
     type=["xlsx"]
 )
 
+st.markdown(
+    "Paste pod loading scheme (tab-separated)  \n"
+    "Use the following format: `concentration_condition`"
+)
+
 layout_text = st.text_area(
-    "Paste pod loading scheme (tab-separated)\n"
-    "Use the following format: concentration_condition",
+    "pod_loading_scheme",
     height=200,
-    placeholder="T1\tT1\tT2\tT2\nT3\tT3\tT4\tT4"
+    placeholder="100_FluA\t100_FluA\t10_FluA\t10_FluA\n50_FluA\t50_FluA\t100_MG\t100_MG\t",
+    label_visibility="collapsed",
 )
 
 
