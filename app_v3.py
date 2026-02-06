@@ -3,6 +3,7 @@ import pandas as pd
 from analysis_v6 import run_analysis
 from io import BytesIO
 import plotly.express as px
+import plotly.graph_objects as go
 from pathlib import Path
 import zipfile
 from zipfile import ZipFile
@@ -69,6 +70,11 @@ if st.session_state.analysis_done:
     st.subheader("CH3 Summary")
     st.dataframe(flat_ch3)
 
+    # --- Determine correct detection column name and normalize it ---
+    st.caption("Debug: available columns in summaries")
+    st.write("CH2 columns:", list(flat_ch2.columns))
+    st.write("CH3 columns:", list(flat_ch3.columns))
+
 
     # Add numeric helper column for sorting
     for df in [flat_ch2, flat_ch3]:
@@ -112,57 +118,76 @@ if st.session_state.analysis_done:
         figures[f"CH3_{metric}_box"] = fig
 
     # --- Detection rate ---
+    det_col = "Detection_%_"
+
+    # Make sure plotting columns are numeric (prevents weird label behavior)
+    for df in (flat_ch2, flat_ch3):
+        df[det_col] = pd.to_numeric(df.get(det_col), errors="coerce")
+        df["QC_N_loaded"] = pd.to_numeric(df.get("QC_N_loaded"), errors="coerce")
+
     figures["CH2_detection"] = px.bar(
         flat_ch2,
         x="Loaded",
-        y="Detection_%_",
-        range_y=[0, 1],
+        y=det_col,
+        range_y=[0, 100],
         color="Condition",
-        text="Detection_%_",
         title="Detection rate (CH2)",
-        category_orders={"Loaded": ch2_order}
+        category_orders={"Loaded": ch2_order},
     )
-    # Percentage inside the bar
+    # % inside the bar (bigger font)
     figures["CH2_detection"].update_traces(
-        text=flat_ch2["Detection_%_"].round(1).astype(str) + "%",
-        textposition="inside"
+        texttemplate="%{y:.1f}%",
+        textposition="inside",
+        textfont_size=16,
+        insidetextanchor="middle",
     )
-    # n on top of the bar
-    for i, row in flat_ch2.iterrows():
-        figures["CH2_detection"].add_annotation(
-            x=row["Loaded"],
-            y=row["Detection_%_"],
-            text=f"n={int(row['QC_N_loaded'])}",
-            showarrow=False,
-            yshift=12
+    # n on top (separate text layer)
+    figures["CH2_detection"].add_trace(
+        go.Scatter(
+            x=flat_ch2["Loaded"],
+            y=flat_ch2[det_col],
+            text=flat_ch2["QC_N_loaded"].apply(lambda v: f"n={int(v)}" if pd.notna(v) else ""),
+            mode="text",
+            textposition="top center",
+            textfont=dict(size=14, color="black"),
+            showlegend=False,
+            cliponaxis=False,
         )
-    figures["CH2_detection"].update_yaxes(range=[0, 100])
+    )
+    figures["CH2_detection"].update_layout(margin=dict(t=60))
+    figures["CH2_detection"].update_yaxes(range=[0, 105])
 
     figures["CH3_detection"] = px.bar(
         flat_ch3,
         x="Loaded",
-        y="Detection_%_",
+        y=det_col,
+        range_y=[0, 100],
         color="Condition",
-        range_y=[0, 1],
-        text="Detection_%_",
         title="Detection rate (CH3)",
-        category_orders={"Loaded": ch3_order}
+        category_orders={"Loaded": ch3_order},
     )
-    # Percentage inside the bar
+    # % inside the bar (bigger font)
     figures["CH3_detection"].update_traces(
-        text=flat_ch3["Detection_%_"].round(1).astype(str) + "%",
-        textposition="inside"
+        texttemplate="%{y:.1f}%",
+        textposition="inside",
+        textfont_size=16,
+        insidetextanchor="middle",
     )
-    # n on top of the bar
-    for i, row in flat_ch3.iterrows():
-        figures["CH3_detection"].add_annotation(
-            x=row["Loaded"],
-            y=row["Detection_%_"],
-            text=f"n={int(row['QC_N_loaded'])}",
-            showarrow=False,
-            yshift=12
+    # n on top (separate text layer)
+    figures["CH3_detection"].add_trace(
+        go.Scatter(
+            x=flat_ch3["Loaded"],
+            y=flat_ch3[det_col],
+            text=flat_ch3["QC_N_loaded"].apply(lambda v: f"n={int(v)}" if pd.notna(v) else ""),
+            mode="text",
+            textposition="top center",
+            textfont=dict(size=14, color="black"),
+            showlegend=False,
+            cliponaxis=False,
         )
-    figures["CH3_detection"].update_yaxes(range=[0, 100])
+    )
+    figures["CH3_detection"].update_layout(margin=dict(t=60))
+    figures["CH3_detection"].update_yaxes(range=[0, 105])
 
 
     st.sidebar.header("Plots")
