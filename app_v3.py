@@ -8,6 +8,11 @@ import zipfile
 from zipfile import ZipFile
 import tempfile
 
+# Force a colored template/palette for BOTH interactive display and static exports
+px.defaults.template = "plotly_white"
+px.defaults.color_discrete_sequence = px.colors.qualitative.Plotly
+
+
 if "analysis_done" not in st.session_state:
     st.session_state.analysis_done = False
 
@@ -59,7 +64,7 @@ if st.session_state.analysis_done:
     st.subheader("CH3 Summary")
     st.dataframe(flat_ch3)
 
-    ## NEW
+
     # Add numeric helper column for sorting
     for df in [flat_ch2, flat_ch3]:
         df["Loaded_num"] = df["Loaded"].str.extract(r"(\d+)").astype(float)
@@ -67,7 +72,7 @@ if st.session_state.analysis_done:
     # Determine descending order per dataframe
     ch2_order = flat_ch2.sort_values(["Loaded_num", "Loaded"], ascending=[False, True])["Loaded"].unique()
     ch3_order = flat_ch3.sort_values(["Loaded_num", "Loaded"], ascending=[False, True])["Loaded"].unique()
-    ##
+
 
     figures = {}
 
@@ -77,10 +82,13 @@ if st.session_state.analysis_done:
             ch2,
             x="Loaded",
             y=metric,
+            color="Condition",
             points="all",
             title=f"{metric} by Loaded (CH2)",
             category_orders={"Loaded": ch2_order}
         )
+        # cleaner look: legend not needed (x-axis already shows it)
+        fig.update_layout(showlegend=False)
         figures[f"CH2_{metric}_box"] = fig
 
     # --- CH3 boxplots ---
@@ -89,10 +97,13 @@ if st.session_state.analysis_done:
             ch3,
             x="Loaded",
             y=metric,
+            color="Condition",
             points="all",
             title=f"{metric} by Loaded (CH3)",
             category_orders={"Loaded": ch3_order}
         )
+        # cleaner look: legend not needed (x-axis already shows it)
+        fig.update_layout(showlegend=False)
         figures[f"CH3_{metric}_box"] = fig
 
     # --- Detection rate ---
@@ -101,6 +112,7 @@ if st.session_state.analysis_done:
         x="Loaded",
         y="Detection_%_",
         range_y=[0, 1],
+        color="Condition",
         text="Detection_%_",
         title="Detection rate (CH2)",
         category_orders={"Loaded": ch2_order}
@@ -125,6 +137,7 @@ if st.session_state.analysis_done:
         flat_ch3,
         x="Loaded",
         y="Detection_%_",
+        color="Condition",
         range_y=[0, 1],
         text="Detection_%_",
         title="Detection rate (CH3)",
@@ -180,6 +193,8 @@ if st.session_state.analysis_done:
         plot_dir.mkdir()
 
         for name, fig in figures.items():
+            # Ensure exported images keep the same styling/colors
+            fig.update_layout(template="plotly_white")
             fig.write_image(plot_dir / f"{name}.png", scale=2)
 
         # ---- Save Excel ----

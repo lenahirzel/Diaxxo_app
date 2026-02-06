@@ -21,6 +21,13 @@ def flatten_summary(summary, channel_name):
     ]
     flat = flat.reset_index()
     flat["Channel"] = channel_name
+
+    # Add plotting-friendly metadata columns
+    loaded = flat["Loaded"].astype(str)
+    parts = loaded.str.split("_", n=1, expand=True)
+    flat["Concentration"] = parts[0]
+    flat["Condition"] = parts[1] if parts.shape[1] > 1 else np.nan
+
     return flat
 
 def run_analysis(df, layout_lines):
@@ -43,6 +50,8 @@ def run_analysis(df, layout_lines):
             well_number += 1
 
     df["Loaded"] = df["Well_ID"].map(mapping)
+    df["Condition"] = df["Loaded"].astype(str).str.split("_").str[1]
+    df["Concentration"] = df["Loaded"].astype(str).str.split("_").str[0]
 
     # Split channels
     df_ch2 = df[df["Channel"] == "CH2"].copy()
