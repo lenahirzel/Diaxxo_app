@@ -20,6 +20,10 @@ file_path = "/Users/lenahirzel/Desktop/Diaxxo_temp_save/Plotting_analysis/Pod-to
 df = pd.read_csv(file_path, sep=";")
 
 # Optional: check columns
+print(df.info)
+print("\n--- DATAFRAME SHAPE ---")
+print(f"Rows: {df.shape[0]}")
+print(f"Columns: {df.shape[1]}")
 print(df.columns)
 print(df.head())
 print(df.head(10))
@@ -55,6 +59,9 @@ def make_publication_figure(df_valid):
     metrics = ["Cq", "Ampl.", "Slope"]
     channels = df_valid["Channel"].unique()
 
+    hue_order = sorted(df_valid["Condition"].dropna().unique())
+    palette = dict(zip(hue_order, sns.color_palette("tab10", n_colors=len(hue_order))))
+
     for ch in channels:
 
         df_ch = df_valid[df_valid["Channel"] == ch]
@@ -73,6 +80,8 @@ def make_publication_figure(df_valid):
                 x="Loaded",
                 y=metric,
                 hue="Condition",
+                hue_order=hue_order,
+                palette=palette,
                 ax=ax,
                 showfliers=False
             )
@@ -82,6 +91,8 @@ def make_publication_figure(df_valid):
                 x="Loaded",
                 y=metric,
                 hue="Condition",
+                hue_order=hue_order,
+                palette=palette,
                 dodge=True,
                 alpha=0.5,
                 linewidth=0,
@@ -104,10 +115,10 @@ def make_publication_figure(df_valid):
             labels[:n],
             title="Condition",
             loc="center left",
-            bbox_to_anchor=(0.9, 0.5),
+            bbox_to_anchor=(0.85, 0.5),
             ncol=1,
-            fontsize=10,
-            title_fontsize=10,
+            fontsize=14,
+            title_fontsize=14
         )
 
         plt.tight_layout(rect=[0, 0, 0.88, 1])
@@ -145,9 +156,9 @@ def plot_detection(df_all):
     ax.legend(
         title="Condition",
         loc="center left",
-        bbox_to_anchor=(0.98, 0.5),
-        fontsize=10,
-        title_fontsize=10,
+        bbox_to_anchor=(0.9, 0.5),
+        fontsize=14,
+        title_fontsize=14,
         frameon=False
     )
 
@@ -169,4 +180,5 @@ df_all, df_valid = prepare_data(df)
 print(df_all.groupby(["Condition", "Channel", "Loaded"])["Detected"].mean())
 
 make_publication_figure(df_valid)
+#make_publication_figure(df_all)
 plot_detection(df_all)
