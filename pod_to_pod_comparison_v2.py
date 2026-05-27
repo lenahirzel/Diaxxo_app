@@ -1,46 +1,46 @@
-import os
+from io import BytesIO
+
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+
 
 # ---------------------------
 # SETTINGS
 # ---------------------------
 
 sns.set_style("whitegrid")
-sns.set_context("talk")  # publication-like scaling
+sns.set_context("talk")
+
 
 # ---------------------------
-# 1. LOAD CSV
+# LOAD CSV
 # ---------------------------
 
-# Replace with your file path
-file_path = "/Users/lenahirzel/Desktop/Diaxxo_temp_save/Plotting_analysis/Pod-to-pod.csv"
-
-df = pd.read_csv(file_path, sep=";")
-
-# Optional: check columns
-print(df.info)
-print("\n--- DATAFRAME SHAPE ---")
-print(f"Rows: {df.shape[0]}")
-print(f"Columns: {df.shape[1]}")
-print(df.columns)
-print(df.head())
-print(df.head(10))
-
-base_dir = os.path.dirname(os.path.abspath(file_path))
-plot_dir = os.path.join(base_dir, "plots")
-
-os.makedirs(plot_dir, exist_ok=True)
+def load_pod_to_pod_csv(uploaded_file, sep=";"):
+    df = pd.read_csv(uploaded_file, sep=sep)
+    df.columns = df.columns.str.strip()
+    return df
 
 
 # ---------------------------
 # CLEANING
 # ---------------------------
+
 def prepare_data(df):
     df = df.copy()
+    df.columns = df.columns.str.strip()
 
-    for col in ["Cq", "Ampl.", "Slope"]:
+    required_columns = ["Cq", "Ampl", "Slope", "Channel", "Condition", "Loaded"]
+    missing_columns = [col for col in required_columns if col not in df.columns]
+
+    if missing_columns:
+        raise ValueError(
+            "Missing required columns: "
+            + ", ".join(missing_columns)
+        )
+
+    for col in ["Cq", "Ampl", "Slope"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     df["Detected"] = df["Cq"] > 0
@@ -50,20 +50,25 @@ def prepare_data(df):
     return df, df_valid
 
 
-
 # ---------------------------
-# MAIN FIGURE (BY CHANNEL)
+# MAIN FIGURE BY CHANNEL
 # ---------------------------
-def make_publication_figure(df_valid):
 
-    metrics = ["Cq", "Ampl.", "Slope"]
-    channels = df_valid["Channel"].unique()
+def make_publication_figures(df_valid):
+    figures = {}
+
+    metrics = ["Cq", "Ampl", "Slope"]
+    channels = df_valid["Channel"].dropna().unique()
 
     hue_order = sorted(df_valid["Condition"].dropna().unique())
-    palette = dict(zip(hue_order, sns.color_palette("tab10", n_colors=len(hue_order))))
+    palette = dict(
+        zip(
+            hue_order,
+            sns.color_palette("tab10", n_colors=len(hue_order))
+        )
+    )
 
     for ch in channels:
-
         df_ch = df_valid[df_valid["Channel"] == ch]
 
         fig, axes = plt.subplots(
@@ -74,7 +79,6 @@ def make_publication_figure(df_valid):
         )
 
         for ax, metric in zip(axes, metrics):
-
             sns.boxplot(
                 data=df_ch,
                 x="Loaded",
@@ -102,11 +106,9 @@ def make_publication_figure(df_valid):
             ax.set_title(f"{metric} ({ch})")
             ax.set_xlabel("Loaded")
 
-            # remove subplot legends
             if ax.get_legend() is not None:
                 ax.legend_.remove()
 
-        # shared legend
         handles, labels = axes[0].get_legend_handles_labels()
         n = df_ch["Condition"].nunique()
 
@@ -121,26 +123,30 @@ def make_publication_figure(df_valid):
             title_fontsize=14
         )
 
-        plt.tight_layout(rect=[0, 0, 0.88, 1])
+        fig.tight_layout(rect=[0, 0, 0.88, 1])
 
-        # save
-        out_png = f"{plot_dir}/qpcr_{ch}.png"
-        out_pdf = f"{plot_dir}/qpcr_{ch}.pdf"
+        figures[ch] = fig
 
-        plt.savefig(out_png, dpi=300, bbox_inches="tight")
-        plt.savefig(out_pdf, bbox_inches="tight")
-
-        plt.show()
+    return figures
 
 
 # ---------------------------
-# DETECTION PLOT (SEPARATE FIGURE)
+# DETECTION PLOT
 # ---------------------------
-def plot_detection(df_all):
+
+def make_detection_figure(df_all):
     df_ch3 = df_all[df_all["Channel"] == "CH3"].copy()
 
+    if df_ch3.empty:
+        return None
+
     hue_order = sorted(df_all["Condition"].dropna().unique())
-    palette = dict(zip(hue_order, sns.color_palette("tab10", n_colors=len(hue_order))))
+    palette = dict(
+        zip(
+            hue_order,
+            sns.color_palette("tab10", n_colors=len(hue_order))
+        )
+    )
 
     fig, ax = plt.subplots(figsize=(15, 8))
 
@@ -167,23 +173,56 @@ def plot_detection(df_all):
         frameon=False
     )
 
-    # save
-    out_png = f"{plot_dir}/detection_rate.png"
-    out_pdf = f"{plot_dir}/detection_rate.pdf"
+    fig.tight_layout()
 
-    plt.savefig(out_png, dpi=300, bbox_inches="tight")
-    plt.savefig(out_pdf, bbox_inches="tight")
-
-    plt.show()
+    return fig
 
 
 # ---------------------------
-# RUN
+# EXPORT HELPERS
 # ---------------------------
-df_all, df_valid = prepare_data(df)
 
-print(df_all.groupby(["Condition", "Channel", "Loaded"])["Detected"].mean())
+def figure_to_png_bytes(fig):
+    output = BytesIO()
+    fig.savefig(output, format="png", dpi=300, bbox_inches="tight")
+    output.seek(0)
+    return output.getvalue()
 
-make_publication_figure(df_valid)
-#make_publication_figure(df_all)
-plot_detection(df_all)
+
+def figure_to_pdf_bytes(fig):
+    output = BytesIO()
+    fig.savefig(output, format="pdf", bbox_inches="tight")
+    output.seek(0)
+    return output.getvalue()
+
+
+# ---------------------------
+# RUN FROM STREAMLIT APP
+# ---------------------------
+
+def run_pod_to_pod_comparison(data):
+    if isinstance(data, pd.DataFrame):
+        df = data.copy()
+    else:
+        df = load_pod_to_pod_csv(data)
+
+    df_all, df_valid = prepare_data(df)
+
+    summary = (
+        df_all
+        .groupby(["Condition", "Channel", "Loaded"], dropna=False)["Detected"]
+        .mean()
+        .reset_index()
+        .rename(columns={"Detected": "Detection_rate"})
+    )
+
+    publication_figures = make_publication_figures(df_valid)
+    detection_figure = make_detection_figure(df_all)
+
+    return {
+        "df_all": df_all,
+        "df_valid": df_valid,
+        "summary": summary,
+        "publication_figures": publication_figures,
+        "detection_figure": detection_figure,
+    }
