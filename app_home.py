@@ -72,13 +72,37 @@ st.set_page_config(
 
 st.title("qPCR Pod Analysis App")
 
+st.markdown(
+    """
+    **QC pod**  
+    Check the quality of a single pod run. This option will be used for pod-level QC metrics and basic run validation.
+
+    **Comparison within one pod**  
+    Compare different loaded conditions within one pod. Enter loading scheme and CSV directly from single experiment.
+
+    **Comparison across multiple pods**  
+    Compare results between different pods or experiments. Use this when the CSV already contains data from multiple pods. Groups by condition. Required columns of the CSV: "Cq", "Ampl", "Slope", "Channel", "Condition", "Loaded"
+    """
+)
+
+analysis_descriptions = {
+    "QC pod": (
+        "Check the quality of a single pod run. "
+        "This option will be used for pod-level QC metrics and basic run validation."
+    ),
+    "Comparison within one pod": (
+        "Compare different loaded conditions within one pod. "
+        "Use this when one CSV contains several concentrations or sample conditions."
+    ),
+    "Comparison across multiple pods": (
+        "Compare results between different pods or experiments. "
+        "Use this when the CSV already contains data from multiple pods."
+    ),
+}
+
 analysis_type = st.radio(
     "What would you like to do?",
-    [
-        "QC pod",
-        "Comparison within one pod",
-        "Comparison across multiple pods",
-    ],
+    list(analysis_descriptions.keys()),
     index=None
 )
 
