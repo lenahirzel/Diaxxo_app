@@ -70,7 +70,7 @@ st.set_page_config(
 )
 
 
-st.title("qPCR Pod Analysis App")
+st.title("dPod Experiment Analysis App")
 
 st.markdown(
     """
@@ -84,6 +84,11 @@ st.markdown(
     Compare results between different pods or experiments. Use this when the CSV already contains data from multiple pods. Groups by condition. Required columns of the CSV: "Cq", "Ampl", "Slope", "Channel", "Condition", "Loaded"
     """
 )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+st.markdown("### **What would you like to do?**")
+
 
 analysis_descriptions = {
     "QC pod": (
@@ -101,9 +106,10 @@ analysis_descriptions = {
 }
 
 analysis_type = st.radio(
-    "What would you like to do?",
+    "Select analysis type",
     list(analysis_descriptions.keys()),
-    index=None
+    index=None,
+    label_visibility="collapsed"
 )
 
 
