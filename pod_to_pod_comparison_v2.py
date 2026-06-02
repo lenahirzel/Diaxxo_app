@@ -148,6 +148,18 @@ def make_detection_figure(df_all):
         )
     )
 
+    detection_summary = (
+        df_ch3
+        .groupby(["Loaded", "Condition"], dropna=False)
+        .agg(
+            Detection_rate=("Detected", "mean"),
+            n=("Detected", "size")
+        )
+        .reset_index()
+    )
+
+    loaded_order = sorted(detection_summary["Loaded"].dropna().unique())
+
     fig, ax = plt.subplots(figsize=(15, 8))
 
     sns.barplot(
@@ -155,14 +167,44 @@ def make_detection_figure(df_all):
         x="Loaded",
         y="Detected",
         hue="Condition",
+        order=loaded_order,
         hue_order=hue_order,
         palette=palette,
         ax=ax
     )
 
+    n_hues = len(hue_order)
+    total_bar_width = 0.8
+    single_bar_width = total_bar_width / n_hues
+
+    for _, row in detection_summary.iterrows():
+        if row["Loaded"] not in loaded_order or row["Condition"] not in hue_order:
+            continue
+
+        loaded_index = loaded_order.index(row["Loaded"])
+        condition_index = hue_order.index(row["Condition"])
+
+        x = (
+            loaded_index
+            - total_bar_width / 2
+            + single_bar_width / 2
+            + condition_index * single_bar_width
+        )
+        y = row["Detection_rate"]
+
+        ax.text(
+            x,
+            min(y + 0.03, 1.05),
+            f"n={int(row['n'])}",
+            ha="center",
+            va="bottom",
+            fontsize=11
+        )
+
     ax.set_ylabel("Detection rate")
-    ax.set_ylim(0, 1)
+    ax.set_ylim(0, 1.08)
     ax.set_title("Detection rate by condition (CH3 only)")
+
 
     ax.legend(
         title="Condition",
