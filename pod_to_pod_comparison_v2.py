@@ -61,6 +61,7 @@ def make_publication_figures(df_valid):
     channels = df_valid["Channel"].dropna().unique()
 
     hue_order = sorted(df_valid["Condition"].dropna().unique())
+    loaded_order = ["1:100k (O)", "1:100k (S)", "1:250k (O)", "1:250k (S)","1:500k (O)","1:500k (S)","1:1Mio (O)","1:1Mio (S)"]
     palette = dict(
         zip(
             hue_order,
@@ -84,6 +85,7 @@ def make_publication_figures(df_valid):
                 x="Loaded",
                 y=metric,
                 hue="Condition",
+                order=loaded_order,
                 hue_order=hue_order,
                 palette=palette,
                 ax=ax,
@@ -95,6 +97,7 @@ def make_publication_figures(df_valid):
                 x="Loaded",
                 y=metric,
                 hue="Condition",
+                order=loaded_order,
                 hue_order=hue_order,
                 palette=palette,
                 dodge=True,
@@ -159,8 +162,9 @@ def make_detection_figure(df_all):
         .reset_index()
     )
 
-    loaded_order = sorted(detection_summary["Loaded"].dropna().unique())
-
+    #loaded_order = sorted(detection_summary["Loaded"].dropna().unique())
+    loaded_order = ["1:100k (O)", "1:100k (S)", "1:250k (O)", "1:250k (S)", "1:500k (O)", "1:500k (S)", "1:1Mio (O)",
+                    "1:1Mio (S)"]
     fig, ax = plt.subplots(figsize=(15, 8))
 
     sns.barplot(
