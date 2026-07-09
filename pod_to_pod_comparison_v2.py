@@ -43,6 +43,8 @@ def prepare_data(df):
     for col in ["Cq", "Ampl", "Slope"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    df["Loaded"] = df["Loaded"].astype(str).str.strip()
+
     df["Detected"] = df["Cq"] > 0
 
     df_valid = df[df["Cq"] > 0].copy()
