@@ -77,7 +77,7 @@ def make_publication_figures(df_valid):
         fig, axes = plt.subplots(
             nrows=1,
             ncols=3,
-            figsize=(24, 8),
+            figsize=(30, 10),
             sharex=True
         )
 
