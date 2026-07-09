@@ -63,7 +63,8 @@ def make_publication_figures(df_valid):
     channels = df_valid["Channel"].dropna().unique()
 
     hue_order = sorted(df_valid["Condition"].dropna().unique())
-    loaded_order = ["1:100k (O)", "1:100k (S)", "1:250k (O)", "1:250k (S)","1:500k (O)","1:500k (S)","1:1Mio (O)","1:1Mio (S)"]
+    #loaded_order = ["1:100k (O)", "1:100k (S)", "1:250k (O)", "1:250k (S)","1:500k (O)","1:500k (S)","1:1Mio (O)","1:1Mio (S)"]
+    loaded_order = ["1:100k (O)", "1:250k (O)","1:500k (O)","1:1Mio (O)"]
     palette = dict(
         zip(
             hue_order,
