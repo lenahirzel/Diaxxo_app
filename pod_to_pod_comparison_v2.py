@@ -74,7 +74,7 @@ def make_publication_figures(df_valid):
         fig, axes = plt.subplots(
             nrows=1,
             ncols=3,
-            figsize=(20, 8),
+            figsize=(24, 8),
             sharex=True
         )
 
@@ -105,6 +105,7 @@ def make_publication_figures(df_valid):
 
             ax.set_title(f"{metric} ({ch})")
             ax.set_xlabel("Loaded")
+            ax.tick_params(axis="x", labelsize=12)
 
             if ax.get_legend() is not None:
                 ax.legend_.remove()
