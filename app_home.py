@@ -220,13 +220,14 @@ elif analysis_type == "Comparison within one pod":
             key="within_channel"
         )
 
-        plot_df = flat_ch2 if channel == "CH2" else flat_ch3
+        box_plot_df = ch2 if channel == "CH2" else ch3
+        detection_plot_df = flat_ch2 if channel == "CH2" else flat_ch3
 
         metric_options = {
-            "Cq": ["Cq"],
-            "Amplitude": ["Ampl", "DRFU"],
-            "Slope": ["Slope", "RFIR"],
-            "Background": ["Background", "Block02_Phase06_Cycle00_RGB_ch1"],
+            "Cq": "Cq",
+            "Amplitude": "Ampl",
+            "Slope": "Slope",
+            "Background": "Background",
         }
 
         metric_label = st.selectbox(
@@ -235,25 +236,18 @@ elif analysis_type == "Comparison within one pod":
             key="within_metric"
         )
 
-        metric_column = next(
-            (
-                column
-                for column in metric_options[metric_label]
-                if column in plot_df.columns
-            ),
-            None
-        )
+        metric_column = metric_options[metric_label]
 
-        if metric_column is None:
-            st.warning(f"No column found for {metric_label}.")
+        if metric_column not in box_plot_df.columns:
+            st.warning(f"No column found for {metric_label}. Available columns: {', '.join(box_plot_df.columns)}")
         else:
-            plot_df[metric_column] = pd.to_numeric(
-                plot_df[metric_column],
+            box_plot_df[metric_column] = pd.to_numeric(
+                box_plot_df[metric_column],
                 errors="coerce"
             )
 
             loaded_order = (
-                plot_df
+                box_plot_df
                 .sort_values(["Loaded_num", "Loaded"], ascending=[False, True])
                 ["Loaded"]
                 .dropna()
@@ -261,7 +255,7 @@ elif analysis_type == "Comparison within one pod":
             )
 
             fig = px.box(
-                plot_df,
+                box_plot_df,
                 x="Loaded",
                 y=metric_column,
                 points="all",
@@ -280,7 +274,7 @@ elif analysis_type == "Comparison within one pod":
         st.header("Detection rate")
 
         fig_det = px.bar(
-            plot_df,
+            detection_plot_df,
             x="Loaded",
             y="QC_Detection_%",
             text="QC_Detection_%",
