@@ -224,9 +224,9 @@ elif analysis_type == "Comparison within one pod":
 
         metric_options = {
             "Cq": ["Cq"],
-            "Amplitude": ["DRFU"],
-            "Slope": ["RFIR"],
-            "Background": ["Block02_Phase06_Cycle00_RGB_ch1"],
+            "Amplitude": ["Ampl", "DRFU"],
+            "Slope": ["Slope", "RFIR"],
+            "Background": ["Background", "Block02_Phase06_Cycle00_RGB_ch1"],
         }
 
         metric_label = st.selectbox(
