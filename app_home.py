@@ -205,6 +205,14 @@ elif analysis_type == "Comparison within one pod":
                 .astype(float)
             )
 
+        for raw_df in [ch2, ch3]:
+            raw_df["Loaded_num"] = (
+                raw_df["Loaded"]
+                .astype(str)
+                .str.extract(r"(\d+)")
+                .astype(float)
+            )
+
         channel = st.radio(
             "Channel",
             ["CH2", "CH3"],
@@ -212,23 +220,62 @@ elif analysis_type == "Comparison within one pod":
             key="within_channel"
         )
 
-        metric = st.selectbox(
+        plot_df = flat_ch2 if channel == "CH2" else flat_ch3
+
+        metric_options = {
+            "Cq": ["Cq"],
+            "Amplitude": ["Ampl", "Ampl.", "Amplitude"],
+            "Slope": ["Slope"],
+            "Background": ["Background"],
+        }
+
+        metric_label = st.selectbox(
             "Select metric",
-            ["Cq_mean", "Slope_mean", "Ampl_mean", "Background_mean"],
+            list(metric_options.keys()),
             key="within_metric"
         )
 
-        plot_df = flat_ch2 if channel == "CH2" else flat_ch3
-
-        fig = px.box(
-            plot_df,
-            x="Loaded",
-            y=metric,
-            points="all",
-            title=f"{metric.replace('_', ' ')} by Loaded ({channel})"
+        metric_column = next(
+            (
+                column
+                for column in metric_options[metric_label]
+                if column in plot_df.columns
+            ),
+            None
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        if metric_column is None:
+            st.warning(f"No column found for {metric_label}.")
+        else:
+            plot_df[metric_column] = pd.to_numeric(
+                plot_df[metric_column],
+                errors="coerce"
+            )
+
+            loaded_order = (
+                plot_df
+                .sort_values(["Loaded_num", "Loaded"], ascending=[False, True])
+                ["Loaded"]
+                .dropna()
+                .unique()
+            )
+
+            fig = px.box(
+                plot_df,
+                x="Loaded",
+                y=metric_column,
+                points="all",
+                title=f"{metric_label} by Loaded ({channel})",
+                category_orders={"Loaded": loaded_order},
+            )
+
+            fig.update_layout(
+                xaxis_title="Loaded",
+                yaxis_title=metric_label,
+                showlegend=False,
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
 
         st.header("Detection rate")
 
