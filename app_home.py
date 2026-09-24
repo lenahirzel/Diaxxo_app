@@ -4,11 +4,16 @@ import streamlit as st
 import pandas as pd
 from analysis_v7 import run_analysis
 from qc_analysis import (
+    add_qc_sample_and_assay_columns,
+    assay_layout_text_to_rows,
+    assay_layout_to_text,
     assess_qc_results,
-    dataframe_to_qc_controls,
-    load_qc_controls,
-    qc_controls_to_dataframe,
-    save_qc_controls,
+    build_combined_layout_lines,
+    dataframe_to_expectations,
+    expectations_to_dataframe,
+    get_product_config,
+    load_qc_config,
+    save_qc_config,
 )
 from pod_to_pod_comparison_v2 import (
     run_pod_to_pod_comparison,
@@ -146,6 +151,8 @@ except ValueError as error:
 if analysis_type == "QC pod":
     st.header("QC Pod")
 
+    qc_config = load_qc_config()
+
     st.subheader("LOT information")
 
     col1, col2 = st.columns(2)
@@ -158,113 +165,185 @@ if analysis_type == "QC pod":
         manufacturing_date = st.date_input("Manufacturing date", value=None)
         expiration_date = st.date_input("Expiration date", value=None)
 
-    st.divider()
+    product_number = str(product_number).strip()
 
-    st.subheader("Saved QC samples")
+    if not product_number:
+        st.info("Please enter a product number to load the assay layout and QC expectations.")
+        st.stop()
 
-    qc_controls = load_qc_controls()
-    qc_controls_df = qc_controls_to_dataframe(qc_controls)
-
-    st.markdown(
-        "These QC sample names should be used exactly in the loading scheme."
-    )
-
-    st.dataframe(qc_controls_df, use_container_width=True)
-
-    with st.expander("Update saved QC samples"):
-        edited_qc_controls_df = st.data_editor(
-            qc_controls_df,
-            num_rows="dynamic",
-            use_container_width=True,
-            column_config={
-                "sample_name": st.column_config.TextColumn(
-                    "QC sample name",
-                    help="Use this exact name in the loading scheme, e.g. ASPC_5k.",
-                    required=True,
-                ),
-                "expected_result": st.column_config.SelectboxColumn(
-                    "Expected result",
-                    options=["positive", "negative"],
-                    required=True,
-                ),
-                "cq_min": st.column_config.NumberColumn(
-                    "Minimum Cq",
-                    help="Leave empty for negative controls or if no lower limit is required.",
-                ),
-                "cq_max": st.column_config.NumberColumn(
-                    "Maximum Cq",
-                    help="Leave empty for negative controls or if no upper limit is required.",
-                ),
-                "channel": st.column_config.SelectboxColumn(
-                    "Channel",
-                    options=["CH2", "CH3"],
-                    required=True,
-                ),
-            },
-            key="qc_controls_editor",
-        )
-
-        if st.button("Update saved QC values"):
-            updated_qc_controls = dataframe_to_qc_controls(edited_qc_controls_df)
-            save_qc_controls(updated_qc_controls)
-            st.success("QC sample expectations were updated.")
-            st.rerun()
+    product_config = get_product_config(qc_config, product_number)
+    assay_layout = product_config.get("assay_layout", [])
+    qc_expectations = product_config.get("qc_expectations", [])
 
     st.divider()
 
-    saved_qc_sample_names = [
-        control["sample_name"]
-        for control in qc_controls
-        if control.get("sample_name")
-    ]
-
-    st.subheader("Pod loading scheme")
+    st.subheader(f"Product {product_number} assay loading scheme")
 
     st.markdown(
-        "Paste pod loading scheme below.  \n"
-        "Use the saved QC sample names exactly as listed above."
+        "This assay layout is linked to the product number. "
+        "It defines which assay is present in each pod position."
     )
 
-    if saved_qc_sample_names:
+    assay_layout_text = st.text_area(
+        "Assay loading scheme",
+        value=assay_layout_to_text(assay_layout),
+        height=160,
+        placeholder="FluA\tFluA\tFluA\tFluA\tFluA\nH9\tH9\tH9\tH9\tH9\nb-actin\tb-actin\tb-actin\tb-actin\tb-actin\nFluA\tH9\tb-actin\tdxoPC\tdxoPC",
+        key=f"assay_layout_{product_number}",
+    )
+
+    if st.button("Update assay loading scheme"):
+        qc_config.setdefault(product_number, {})
+        qc_config[product_number]["assay_layout"] = assay_layout_text_to_rows(assay_layout_text)
+        qc_config[product_number]["qc_expectations"] = qc_expectations
+        save_qc_config(qc_config)
+        st.success(f"Assay loading scheme for product {product_number} was updated.")
+        st.rerun()
+
+    assay_layout = assay_layout_text_to_rows(assay_layout_text) if assay_layout_text.strip() else []
+
+    st.divider()
+
+    st.subheader(f"Product {product_number} QC expectations")
+
+    st.markdown(
+        "These expectations are specific to the combination of "
+        "**product number + QC sample + assay + channel**."
+    )
+
+    expectations_df = expectations_to_dataframe(qc_expectations)
+
+    edited_expectations_df = st.data_editor(
+        expectations_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        column_config={
+            "qc_sample": st.column_config.TextColumn(
+                "QC sample",
+                help="Example: APS_5k, NTC",
+                required=True,
+            ),
+            "assay": st.column_config.TextColumn(
+                "Assay",
+                help="Example: FluA, H9, b-actin",
+                required=True,
+            ),
+            "expected_result": st.column_config.SelectboxColumn(
+                "Expected result",
+                options=["positive", "negative"],
+                required=True,
+            ),
+            "cq_min": st.column_config.NumberColumn(
+                "Minimum Cq",
+                help="Leave empty if no lower limit is required.",
+            ),
+            "cq_max": st.column_config.NumberColumn(
+                "Maximum Cq",
+                help="Leave empty if no upper limit is required.",
+            ),
+            "channel": st.column_config.SelectboxColumn(
+                "Channel",
+                options=["CH2", "CH3"],
+                required=True,
+            ),
+        },
+        key=f"qc_expectations_{product_number}",
+    )
+
+    if st.button("Update QC expectations"):
+        updated_expectations = dataframe_to_expectations(edited_expectations_df)
+        qc_config.setdefault(product_number, {})
+        qc_config[product_number]["assay_layout"] = assay_layout
+        qc_config[product_number]["qc_expectations"] = updated_expectations
+        save_qc_config(qc_config)
+        st.success(f"QC expectations for product {product_number} were updated.")
+        st.rerun()
+
+    qc_expectations = dataframe_to_expectations(edited_expectations_df)
+
+    saved_qc_samples = sorted(
+        {
+            expectation["qc_sample"]
+            for expectation in qc_expectations
+            if expectation.get("qc_sample")
+        }
+    )
+
+    saved_assays = sorted(
+        {
+            expectation["assay"]
+            for expectation in qc_expectations
+            if expectation.get("assay")
+        }
+    )
+
+    st.divider()
+
+    st.subheader("QC sample loading scheme")
+
+    st.markdown(
+        "Paste the QC sample loading scheme below.  \n"
+        "The app will combine this sample layout with the saved product assay layout."
+    )
+
+    if saved_qc_samples:
         st.info(
-            "Saved QC samples: "
-            + ", ".join(f"`{sample}`" for sample in saved_qc_sample_names)
+            "Saved QC samples for this product: "
+            + ", ".join(f"`{sample}`" for sample in saved_qc_samples)
         )
 
-    layout_text = st.text_area(
-        "Pod loading scheme",
+    if saved_assays:
+        st.info(
+            "Assays with saved expectations for this product: "
+            + ", ".join(f"`{assay}`" for assay in saved_assays)
+        )
+
+    sample_layout_text = st.text_area(
+        "QC sample loading scheme",
         height=200,
-        placeholder="ASPC_5k\tASPC_5k\tNTC\tNTC\nASPC_5k\tASPC_5k\tNTC\tNTC",
-        key="qc_layout_text",
+        placeholder="APS_5k\tAPS_5k\tAPS_5k\tAPS_5k\tAPS_5k\nAPS_5k\tAPS_5k\tAPS_5k\tAPS_5k\tAPS_5k\nNTC\tNTC\tNTC\tNTC\tNTC\nAPS_5k\tAPS_5k\tAPS_5k\tNTC\tNTC",
+        key=f"qc_sample_layout_{product_number}",
     )
 
-    if layout_text:
-        loaded_values = [
+    if sample_layout_text:
+        loaded_qc_samples = [
             value.strip()
-            for line in layout_text.strip().split("\n")
+            for line in sample_layout_text.strip().split("\n")
             for value in line.split("\t")
             if value.strip()
         ]
 
-        unknown_qc_values = sorted(
+        unknown_qc_samples = sorted(
             {
                 value
-                for value in loaded_values
-                if value not in saved_qc_sample_names
+                for value in loaded_qc_samples
+                if value not in saved_qc_samples
             }
         )
 
-        if unknown_qc_values:
+        if unknown_qc_samples:
             st.warning(
-                "The following loaded values are not saved QC samples: "
-                + ", ".join(f"`{value}`" for value in unknown_qc_values)
+                "The following loaded QC samples do not have saved expectations "
+                f"for product {product_number}: "
+                + ", ".join(f"`{value}`" for value in unknown_qc_samples)
             )
 
         if st.button("Run QC analysis"):
-            layout_lines = layout_text.strip().split("\n")
+            if not assay_layout:
+                st.error("No assay loading scheme is saved or entered for this product.")
+                st.stop()
 
             try:
-                results = run_analysis(df, layout_lines)
+                combined_layout_lines = build_combined_layout_lines(
+                    sample_layout_text,
+                    assay_layout,
+                )
+            except ValueError as error:
+                st.error(str(error))
+                st.stop()
+
+            try:
+                results = run_analysis(df, combined_layout_lines)
             except ValueError as error:
                 st.error(str(error))
                 st.stop()
@@ -277,6 +356,14 @@ if analysis_type == "QC pod":
                 st.session_state.qc_flat_ch3,
             ) = results
 
+            add_qc_sample_and_assay_columns(
+                st.session_state.qc_full_df,
+                st.session_state.qc_ch2,
+                st.session_state.qc_ch3,
+                st.session_state.qc_flat_ch2,
+                st.session_state.qc_flat_ch3,
+            )
+
             st.session_state.qc_metadata = {
                 "Product number": product_number,
                 "LOT serial number": lot_sn,
@@ -284,16 +371,18 @@ if analysis_type == "QC pod":
                 "Expiration date": expiration_date,
             }
 
+            st.session_state.qc_assay_layout = assay_layout
+            st.session_state.qc_sample_layout_text = sample_layout_text
             st.session_state.qc_assessment = assess_qc_results(
                 st.session_state.qc_flat_ch2,
                 st.session_state.qc_flat_ch3,
-                qc_controls,
+                qc_expectations,
             )
 
             st.session_state.qc_analysis_done = True
 
     else:
-        st.info("Please paste the pod loading scheme.")
+        st.info("Please paste the QC sample loading scheme.")
 
     if st.session_state.get("qc_analysis_done", False):
         full_df = st.session_state.qc_full_df
@@ -325,7 +414,7 @@ if analysis_type == "QC pod":
 
         st.dataframe(metadata_df, use_container_width=True)
 
-        st.subheader("QC assessment")
+        st.subheader("QC assessment by sample and assay")
 
         def highlight_qc_assessment(row):
             if row["QC assessment"] == "passed":
@@ -382,16 +471,16 @@ if analysis_type == "QC pod":
 
             fig = px.box(
                 box_plot_df,
-                x="Loaded",
+                x="Assay",
                 y=metric_column,
+                color="QC_sample",
                 points="all",
-                title=f"{metric_label} by QC sample ({channel})",
+                title=f"{metric_label} by assay and QC sample ({channel})",
             )
 
             fig.update_layout(
-                xaxis_title="QC sample",
+                xaxis_title="Assay",
                 yaxis_title=metric_label,
-                showlegend=False,
             )
 
             st.plotly_chart(fig, use_container_width=True)
@@ -400,21 +489,22 @@ if analysis_type == "QC pod":
 
         fig_det = px.bar(
             detection_plot_df,
-            x="Loaded",
+            x="Assay",
             y="QC_Detection_%",
+            color="QC_sample",
+            barmode="group",
             text="QC_Detection_%",
-            title=f"Detection % by QC sample ({channel})",
+            title=f"Detection % by assay and QC sample ({channel})",
         )
 
         fig_det.update_traces(
             texttemplate="%{text:.1f}%",
             textposition="inside",
-            marker_color="steelblue",
         )
 
         fig_det.update_layout(
             yaxis_title="Detection %",
-            xaxis_title="QC sample",
+            xaxis_title="Assay",
         )
 
         fig_det.update_yaxes(range=[0, 110])
@@ -423,8 +513,11 @@ if analysis_type == "QC pod":
 
         output = BytesIO()
 
+        assay_layout_df = pd.DataFrame(st.session_state.qc_assay_layout)
+
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
             metadata_df.to_excel(writer, sheet_name="LOT_information", index=False)
+            assay_layout_df.to_excel(writer, sheet_name="Assay_layout", index=False, header=False)
             qc_assessment.to_excel(writer, sheet_name="QC_assessment", index=False)
             flat_ch2.to_excel(writer, sheet_name="CH2_summary", index=False)
             flat_ch3.to_excel(writer, sheet_name="CH3_summary", index=False)
