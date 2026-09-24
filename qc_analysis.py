@@ -58,10 +58,12 @@ DEFAULT_QC_CONFIG = {
 
 
 def load_qc_config():
-    """Load product-specific QC configuration from JSON, or create defaults."""
+    """Load product-specific QC configuration from the repo JSON file."""
     if not QC_CONFIG_PATH.exists():
-        save_qc_config(DEFAULT_QC_CONFIG)
-        return DEFAULT_QC_CONFIG
+        raise FileNotFoundError(
+            f"QC configuration file was not found: {QC_CONFIG_PATH.resolve()}. "
+            "Create qc_product_config.json in the repository root and commit it."
+        )
 
     with QC_CONFIG_PATH.open("r", encoding="utf-8") as file:
         return json.load(file)

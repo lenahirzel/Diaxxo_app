@@ -5,16 +5,13 @@ import pandas as pd
 from analysis_v7 import run_analysis
 from qc_analysis import (
     add_qc_sample_and_assay_columns,
-    assay_layout_text_to_rows,
     assay_layout_to_text,
     assess_qc_results,
     build_combined_layout_lines,
-    dataframe_to_expectations,
     expectations_to_dataframe,
     get_product_config,
     get_qc_config_path,
     load_qc_config,
-    save_qc_config,
 )
 from pod_to_pod_comparison_v2 import (
     run_pod_to_pod_comparison,
@@ -181,28 +178,29 @@ if analysis_type == "QC pod":
 
     st.subheader(f"Product {product_number} assay loading scheme")
 
+    st.info(
+        "QC configuration is loaded from qc_product_config.json in the repository. "
+        "To make permanent changes, edit that JSON file and commit it to the repo."
+    )
+
     st.markdown(
         "This assay layout is linked to the product number. "
         "It defines which assay is present in each pod position."
     )
 
-    assay_layout_text = st.text_area(
-        "Assay loading scheme",
-        value=assay_layout_to_text(assay_layout),
-        height=160,
-        placeholder="FluA\tFluA\tFluA\tFluA\tFluA\nH9\tH9\tH9\tH9\tH9\nb-actin\tb-actin\tb-actin\tb-actin\tb-actin\nFluA\tH9\tb-actin\tdxoPC\tdxoPC",
-        key=f"assay_layout_{product_number}",
-    )
-
-    if st.button("Update assay loading scheme"):
-        qc_config.setdefault(product_number, {})
-        qc_config[product_number]["assay_layout"] = assay_layout_text_to_rows(assay_layout_text)
-        qc_config[product_number]["qc_expectations"] = qc_expectations
-        save_qc_config(qc_config)
-        st.success(f"Assay loading scheme for product {product_number} was updated.")
-        st.rerun()
-
-    assay_layout = assay_layout_text_to_rows(assay_layout_text) if assay_layout_text.strip() else []
+    if assay_layout:
+        st.text_area(
+            "Assay loading scheme",
+            value=assay_layout_to_text(assay_layout),
+            height=160,
+            disabled=True,
+            key=f"assay_layout_{product_number}",
+        )
+    else:
+        st.warning(
+            f"No assay loading scheme found for product `{product_number}` "
+            "in qc_product_config.json."
+        )
 
     st.divider()
 
@@ -215,53 +213,13 @@ if analysis_type == "QC pod":
 
     expectations_df = expectations_to_dataframe(qc_expectations)
 
-    edited_expectations_df = st.data_editor(
-        expectations_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        column_config={
-            "qc_sample": st.column_config.TextColumn(
-                "QC sample",
-                help="Example: APS_5k, NTC",
-                required=True,
-            ),
-            "assay": st.column_config.TextColumn(
-                "Assay",
-                help="Example: FluA, H9, b-actin",
-                required=True,
-            ),
-            "expected_result": st.column_config.SelectboxColumn(
-                "Expected result",
-                options=["positive", "negative"],
-                required=True,
-            ),
-            "cq_min": st.column_config.NumberColumn(
-                "Minimum Cq",
-                help="Leave empty if no lower limit is required.",
-            ),
-            "cq_max": st.column_config.NumberColumn(
-                "Maximum Cq",
-                help="Leave empty if no upper limit is required.",
-            ),
-            "channel": st.column_config.SelectboxColumn(
-                "Channel",
-                options=["CH2", "CH3"],
-                required=True,
-            ),
-        },
-        key=f"qc_expectations_{product_number}",
-    )
-
-    if st.button("Update QC expectations"):
-        updated_expectations = dataframe_to_expectations(edited_expectations_df)
-        qc_config.setdefault(product_number, {})
-        qc_config[product_number]["assay_layout"] = assay_layout
-        qc_config[product_number]["qc_expectations"] = updated_expectations
-        save_qc_config(qc_config)
-        st.success(f"QC expectations for product {product_number} were updated.")
-        st.rerun()
-
-    qc_expectations = dataframe_to_expectations(edited_expectations_df)
+    if expectations_df.empty:
+        st.warning(
+            f"No QC expectations found for product `{product_number}` "
+            "in qc_product_config.json."
+        )
+    else:
+        st.dataframe(expectations_df, use_container_width=True)
 
     saved_qc_samples = sorted(
         {

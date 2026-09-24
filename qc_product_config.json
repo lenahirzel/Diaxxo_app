@@ -1,0 +1,44 @@
+{
+  "271": {
+    "assay_layout": [
+      ["FluA", "FluA", "FluA", "FluA", "FluA"],
+      ["H9", "H9", "H9", "H9", "H9"],
+      ["b-actin", "b-actin", "b-actin", "b-actin", "b-actin"],
+      ["FluA", "H9", "b-actin", "dxoPC", "dxoPC"]
+    ],
+    "qc_expectations": [
+      {
+        "qc_sample": "APS_5k",
+        "assay": "FluA",
+        "expected_result": "positive",
+        "cq_min": 28.0,
+        "cq_max": 30.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "APS_5k",
+        "assay": "H9",
+        "expected_result": "positive",
+        "cq_min": 30.0,
+        "cq_max": 32.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "NTC",
+        "assay": "FluA",
+        "expected_result": "negative",
+        "cq_min": null,
+        "cq_max": null,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "NTC",
+        "assay": "H9",
+        "expected_result": "negative",
+        "cq_min": null,
+        "cq_max": null,
+        "channel": "CH3"
+      }
+    ]
+  }
+}
