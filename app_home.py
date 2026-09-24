@@ -155,7 +155,7 @@ if analysis_type == "QC pod":
     qc_config = load_qc_config()
     st.caption(f"QC config file: `{get_qc_config_path()}`")
 
-st.subheader("LOT information")
+    st.subheader("LOT information")
 
     col1, col2 = st.columns(2)
 
