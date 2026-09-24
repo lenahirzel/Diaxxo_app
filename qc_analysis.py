@@ -6,6 +6,10 @@ import pandas as pd
 
 QC_CONFIG_PATH = Path(__file__).with_name("qc_product_config.json")
 
+def get_qc_config_path():
+    """Return the absolute path of the QC configuration JSON file."""
+    return QC_CONFIG_PATH.resolve()
+
 
 DEFAULT_QC_CONFIG = {
     "244": {

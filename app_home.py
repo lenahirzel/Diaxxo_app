@@ -12,6 +12,7 @@ from qc_analysis import (
     dataframe_to_expectations,
     expectations_to_dataframe,
     get_product_config,
+    get_qc_config_path,
     load_qc_config,
     save_qc_config,
 )
@@ -152,8 +153,9 @@ if analysis_type == "QC pod":
     st.header("QC Pod")
 
     qc_config = load_qc_config()
+    st.caption(f"QC config file: `{get_qc_config_path()}`")
 
-    st.subheader("LOT information")
+st.subheader("LOT information")
 
     col1, col2 = st.columns(2)
 
