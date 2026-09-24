@@ -8,23 +8,111 @@
     ],
     "qc_expectations": [
       {
-        "qc_sample": "APS_5k",
+        "qc_sample": "ASPC_5k",
         "assay": "FluA",
         "expected_result": "positive",
-        "cq_min": 28.0,
-        "cq_max": 30.0,
+        "cq_min": 26.0,
+        "cq_max": 28.0,
         "channel": "CH3"
       },
       {
-        "qc_sample": "APS_5k",
+        "qc_sample": "ASPC_5k",
         "assay": "H9",
+        "expected_result": "negative",
+        "cq_min": null,
+        "cq_max": null,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "ASPC_5k",
+        "assay": "b-actin",
         "expected_result": "positive",
-        "cq_min": 30.0,
+        "cq_min": 29.0,
         "cq_max": 32.0,
         "channel": "CH3"
       },
       {
-        "qc_sample": "NTC",
+        "qc_sample": "ASPC_50",
+        "assay": "FluA",
+        "expected_result": "positive",
+        "cq_min": 32.0,
+        "cq_max": 35.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "ASPC_50",
+        "assay": "H9",
+        "expected_result": "negative",
+        "cq_min": null,
+        "cq_max": null,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "ASPC_50",
+        "assay": "b-actin",
+        "expected_result": "positive",
+        "cq_min": 37.0,
+        "cq_max": 40.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "H9_s1_4",
+        "assay": "FluA",
+        "expected_result": "positive",
+        "cq_min": 31.0,
+        "cq_max": 34.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "H9_s1_4",
+        "assay": "H9",
+        "expected_result": "positive",
+        "cq_min": 31.0,
+        "cq_max": 34.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "H9_s1_40",
+        "assay": "FluA",
+        "expected_result": "positive",
+        "cq_min": 33.0,
+        "cq_max": 36.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "H9_s1_40",
+        "assay": "H9",
+        "expected_result": "positive",
+        "cq_min": 35.0,
+        "cq_max": 38.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "BioX_500",
+        "assay": "FluA",
+        "expected_result": "positive",
+        "cq_min": 31.0,
+        "cq_max": 34.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "BioX_500",
+        "assay": "H9",
+        "expected_result": "negative",
+        "cq_min": null,
+        "cq_max": null,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "PC",
+        "assay": "dxoPC",
+        "expected_result": "positive",
+        "cq_min": 27.0,
+        "cq_max": 30.0,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "NC",
         "assay": "FluA",
         "expected_result": "negative",
         "cq_min": null,
@@ -32,8 +120,16 @@
         "channel": "CH3"
       },
       {
-        "qc_sample": "NTC",
+        "qc_sample": "NC",
         "assay": "H9",
+        "expected_result": "negative",
+        "cq_min": null,
+        "cq_max": null,
+        "channel": "CH3"
+      },
+      {
+        "qc_sample": "NC",
+        "assay": "b-actin",
         "expected_result": "negative",
         "cq_min": null,
         "cq_max": null,
