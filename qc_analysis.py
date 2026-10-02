@@ -53,6 +53,7 @@ DEFAULT_QC_CONFIG = {
                 "channel": "CH3",
             },
         ],
+    },
     "269": {
         "assay_layout": [
             ["S3", "S3", "S3", "S3", "S3"],
