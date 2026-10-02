@@ -150,7 +150,7 @@ if st.session_state.analysis_done:
 
     excel_buffer.seek(0)
 
-    plot_dir = Path("plots")
+    plot_dir = Path("../plots")
     plot_dir.mkdir(exist_ok=True)
 
     fig_ch2.write_image(plot_dir / "CH2_Cq_boxplot.png", scale=2)
