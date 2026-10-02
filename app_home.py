@@ -569,32 +569,54 @@ if analysis_type == "QC pod":
 
         metric_column = metric_options[metric_label]
 
-        if metric_column not in box_plot_df.columns:
+        required_box_plot_columns = ["Assay", "QC_sample", metric_column]
+        missing_box_plot_columns = [
+            column
+            for column in required_box_plot_columns
+            if column not in box_plot_df.columns
+        ]
+
+        if box_plot_df.empty:
+            st.warning(f"No {channel} data available for the box plot.")
+
+        elif missing_box_plot_columns:
             st.warning(
-                f"No column found for {metric_label}. "
-                f"Available columns: {', '.join(box_plot_df.columns)}"
+                "Cannot create the QC box plot because the following column(s) are missing: "
+                + ", ".join(missing_box_plot_columns)
+                + f". Available columns: {', '.join(box_plot_df.columns)}"
             )
+
         else:
+            box_plot_df = box_plot_df.copy()
             box_plot_df[metric_column] = pd.to_numeric(
                 box_plot_df[metric_column],
                 errors="coerce",
             )
 
-            fig = px.box(
-                box_plot_df,
-                x="Assay",
-                y=metric_column,
-                color="QC_sample",
-                points="all",
-                title=f"{metric_label} by assay and QC sample ({channel})",
+            box_plot_df = box_plot_df.dropna(
+                subset=["Assay", "QC_sample", metric_column]
             )
 
-            fig.update_layout(
-                xaxis_title="Assay",
-                yaxis_title=metric_label,
-            )
+            if box_plot_df.empty:
+                st.warning(
+                    f"No plottable {metric_label} values available for {channel}."
+                )
+            else:
+                fig = px.box(
+                    box_plot_df,
+                    x="Assay",
+                    y=metric_column,
+                    color="QC_sample",
+                    points="all",
+                    title=f"{metric_label} by assay and QC sample ({channel})",
+                )
 
-            st.plotly_chart(fig, use_container_width=True)
+                fig.update_layout(
+                    xaxis_title="Assay",
+                    yaxis_title=metric_label,
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
 
         st.header("Detection rate")
 
@@ -752,38 +774,54 @@ elif analysis_type == "Comparison within one pod":
 
         metric_column = metric_options[metric_label]
 
-        if metric_column not in box_plot_df.columns:
-            st.warning(f"No column found for {metric_label}. Available columns: {', '.join(box_plot_df.columns)}")
+        required_box_plot_columns = ["Loaded", metric_column]
+        missing_box_plot_columns = [
+            column
+            for column in required_box_plot_columns
+            if column not in box_plot_df.columns
+        ]
+
+        if box_plot_df.empty:
+            st.warning(f"No {channel} data available for the box plot.")
+
+        elif missing_box_plot_columns:
+            st.warning(
+                "Cannot create the QC box plot because the following column(s) are missing: "
+                + ", ".join(missing_box_plot_columns)
+                + f". Available columns: {', '.join(box_plot_df.columns)}"
+            )
+
         else:
+            box_plot_df = box_plot_df.copy()
             box_plot_df[metric_column] = pd.to_numeric(
                 box_plot_df[metric_column],
-                errors="coerce"
+                errors="coerce",
             )
 
-            loaded_order = (
-                box_plot_df
-                .sort_values(["Loaded_num", "Loaded"], ascending=[False, True])
-                ["Loaded"]
-                .dropna()
-                .unique()
+            box_plot_df = box_plot_df.dropna(
+                subset=["Loaded", metric_column]
             )
 
-            fig = px.box(
-                box_plot_df,
-                x="Loaded",
-                y=metric_column,
-                points="all",
-                title=f"{metric_label} by Loaded ({channel})",
-                category_orders={"Loaded": loaded_order},
-            )
+            if box_plot_df.empty:
+                st.warning(
+                    f"No plottable {metric_label} values available for {channel}."
+                )
+            else:
+                fig = px.box(
+                    box_plot_df,
+                    x="Loaded",
+                    y=metric_column,
+                    points="all",
+                    title=f"{metric_label} by Loaded ({channel})",
+                )
 
-            fig.update_layout(
-                xaxis_title="Loaded",
-                yaxis_title=metric_label,
-                showlegend=False,
-            )
+                fig.update_layout(
+                    xaxis_title="Loaded",
+                    yaxis_title=metric_label,
+                    showlegend=False,
+                )
 
-            st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
 
         st.header("Detection rate")
 

@@ -29,7 +29,7 @@ print(df.head())
 print(df.head(10))
 
 base_dir = os.path.dirname(os.path.abspath(file_path))
-plot_dir = os.path.join(base_dir, "plots")
+plot_dir = os.path.join(base_dir, "../plots")
 
 os.makedirs(plot_dir, exist_ok=True)
 
