@@ -142,7 +142,7 @@
             ["S3", "S3", "S3", "S3", "S3"],
             ["S3", "S3", "S3", "S3", "S3"],
             ["S3", "S3", "S3", "S3", "S3"],
-            ["S3", "S3", "S3", "dxoPC", "dxoPC"],
+            ["S3", "S3", "S3", "dxoPC", "dxoPC"]
         ],
         "qc_expectations": [
             {
@@ -151,7 +151,7 @@
                 "expected_result": "positive",
                 "cq_min": 11,
                 "cq_max": 14,
-                "channel": "CH3",
+                "channel": "CH3"
             },
             {
                 "qc_sample": "S3_10",
@@ -159,7 +159,7 @@
                 "expected_result": "positive",
                 "cq_min": 14.0,
                 "cq_max": 17.0,
-                "channel": "CH3",
+                "channel": "CH3"
             },
             {
                 "qc_sample": "S3_100",
@@ -167,7 +167,7 @@
                 "expected_result": "positive",
                 "cq_min": 19,
                 "cq_max": 21,
-                "channel": "CH3",
+                "channel": "CH3"
             },
 {
                 "qc_sample": "S3_1000",
@@ -175,7 +175,7 @@
                 "expected_result": "positive",
                 "cq_min": 22,
                 "cq_max": 25,
-                "channel": "CH3",
+                "channel": "CH3"
             },
 {
                 "qc_sample": "dxoPC",
@@ -183,15 +183,15 @@
                 "expected_result": "positive",
                 "cq_min": 27,
                 "cq_max": 31,
-                "channel": "CH3",
+                "channel": "CH3"
             },
             {
                 "qc_sample": "NTC",
                 "assay": "S3",
                 "expected_result": "negative",
-                "cq_min": None,
-                "cq_max": None,
-                "channel": "CH3",
+                "cq_min": null,
+                "cq_max": null,
+                "channel": "CH3"
             }
         ]
     }
