@@ -53,6 +53,63 @@ DEFAULT_QC_CONFIG = {
                 "channel": "CH3",
             },
         ],
+    "269": {
+        "assay_layout": [
+            ["S3", "S3", "S3", "S3", "S3"],
+            ["S3", "S3", "S3", "S3", "S3"],
+            ["S3", "S3", "S3", "S3", "S3"],
+            ["S3", "S3", "S3", "dxoPC", "dxoPC"],
+        ],
+        "qc_expectations": [
+            {
+                "qc_sample": "S3_U",
+                "assay": "S3",
+                "expected_result": "positive",
+                "cq_min": 11,
+                "cq_max": 14,
+                "channel": "CH3",
+            },
+            {
+                "qc_sample": "S3_10",
+                "assay": "S3",
+                "expected_result": "positive",
+                "cq_min": 14.0,
+                "cq_max": 17.0,
+                "channel": "CH3",
+            },
+            {
+                "qc_sample": "S3_100",
+                "assay": "S3",
+                "expected_result": "positive",
+                "cq_min": 19,
+                "cq_max": 21,
+                "channel": "CH3",
+            },
+{
+                "qc_sample": "S3_1000",
+                "assay": "S3",
+                "expected_result": "positive",
+                "cq_min": 22,
+                "cq_max": 25,
+                "channel": "CH3",
+            },
+{
+                "qc_sample": "dxoPC",
+                "assay": "dxoPC",
+                "expected_result": "positive",
+                "cq_min": 27,
+                "cq_max": 31,
+                "channel": "CH3",
+            },
+            {
+                "qc_sample": "NTC",
+                "assay": "S3",
+                "expected_result": "negative",
+                "cq_min": None,
+                "cq_max": None,
+                "channel": "CH3",
+            },
+    ],
     }
 }
 

@@ -1,5 +1,10 @@
 from io import BytesIO, StringIO
 import csv
+from pathlib import Path
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 import streamlit as st
 import pandas as pd
 from analysis_v7 import run_analysis
@@ -19,6 +24,8 @@ from pod_to_pod_comparison_v2 import (
     figure_to_pdf_bytes,
 )
 import plotly.express as px
+
+QC_WORD_TEMPLATE_PATH = Path(__file__).with_name("qc_report_template.docx")
 
 def read_diaxxo_csv(uploaded_file):
     raw_text = uploaded_file.getvalue().decode("utf-8-sig", errors="replace")
@@ -72,6 +79,150 @@ def read_diaxxo_csv(uploaded_file):
 
     return df
 
+def format_report_value(value):
+    """Format values safely for the Word report."""
+    if pd.isna(value):
+        return ""
+
+    return str(value)
+
+
+def set_cell_background(cell, hex_color):
+    """Set Word table cell background color."""
+    cell_properties = cell._tc.get_or_add_tcPr()
+    shading = OxmlElement("w:shd")
+    shading.set(qn("w:fill"), hex_color)
+    cell_properties.append(shading)
+
+
+def replace_text_in_paragraph(paragraph, replacements):
+    """Replace placeholders inside a paragraph while preserving basic Word styling."""
+    full_text = "".join(run.text for run in paragraph.runs)
+
+    if not any(placeholder in full_text for placeholder in replacements):
+        return
+
+    for placeholder, replacement in replacements.items():
+        full_text = full_text.replace(placeholder, str(replacement))
+
+    for run in paragraph.runs:
+        run.text = ""
+
+    if paragraph.runs:
+        paragraph.runs[0].text = full_text
+    else:
+        paragraph.add_run(full_text)
+
+
+def replace_text_everywhere(document, replacements):
+    """Replace placeholders in normal text, tables, headers, and footers."""
+    for paragraph in document.paragraphs:
+        replace_text_in_paragraph(paragraph, replacements)
+
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    replace_text_in_paragraph(paragraph, replacements)
+
+    for section in document.sections:
+        for header_footer in [
+            section.header,
+            section.first_page_header,
+            section.even_page_header,
+            section.footer,
+            section.first_page_footer,
+            section.even_page_footer,
+        ]:
+            for paragraph in header_footer.paragraphs:
+                replace_text_in_paragraph(paragraph, replacements)
+
+            for table in header_footer.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for paragraph in cell.paragraphs:
+                            replace_text_in_paragraph(paragraph, replacements)
+
+
+def insert_dataframe_after_paragraph(paragraph, dataframe):
+    """Insert QC dataframe as a Word table directly after the given paragraph."""
+    table = paragraph._parent.add_table(rows=1, cols=len(dataframe.columns))
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.style = "Table Grid"
+
+    paragraph._p.addnext(table._tbl)
+
+    header_cells = table.rows[0].cells
+
+    for column_index, column_name in enumerate(dataframe.columns):
+        header_cells[column_index].text = str(column_name)
+        set_cell_background(header_cells[column_index], "D9EAF7")
+
+        for header_paragraph in header_cells[column_index].paragraphs:
+            for run in header_paragraph.runs:
+                run.bold = True
+
+    for _, dataframe_row in dataframe.iterrows():
+        row_cells = table.add_row().cells
+
+        qc_assessment = str(dataframe_row.get("QC assessment", "")).lower()
+
+        if qc_assessment == "passed":
+            row_color = "D4EDDA"
+        else:
+            row_color = "F8D7DA"
+
+        for column_index, column_name in enumerate(dataframe.columns):
+            row_cells[column_index].text = format_report_value(dataframe_row[column_name])
+            row_cells[column_index].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            set_cell_background(row_cells[column_index], row_color)
+
+    return table
+
+
+def replace_qc_table_placeholder(document, qc_assessment):
+    """Replace {{QC_TABLE}} placeholder with the QC assessment table."""
+    for paragraph in document.paragraphs:
+        if "{{QC_TABLE}}" in paragraph.text:
+            paragraph.text = paragraph.text.replace("{{QC_TABLE}}", "")
+            insert_dataframe_after_paragraph(paragraph, qc_assessment)
+            return
+
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    if "{{QC_TABLE}}" in paragraph.text:
+                        paragraph.text = paragraph.text.replace("{{QC_TABLE}}", "")
+                        insert_dataframe_after_paragraph(paragraph, qc_assessment)
+                        return
+
+
+def create_qc_word_report_from_template(qc_metadata, qc_assessment, overall_qc_passed):
+    """Create a QC Word report by filling an existing .docx template."""
+    if not QC_WORD_TEMPLATE_PATH.exists():
+        raise FileNotFoundError(
+            f"Word template was not found: {QC_WORD_TEMPLATE_PATH}"
+        )
+
+    document = Document(QC_WORD_TEMPLATE_PATH)
+
+    replacements = {
+        "{{PRODUCT_NUMBER}}": format_report_value(qc_metadata.get("Product number")),
+        "{{LOT_SN}}": format_report_value(qc_metadata.get("LOT serial number")),
+        "{{MANUFACTURING_DATE}}": format_report_value(qc_metadata.get("Manufacturing date")),
+        "{{EXPIRATION_DATE}}": format_report_value(qc_metadata.get("Expiration date")),
+        "{{QC_RESULT}}": "PASSED" if overall_qc_passed else "NOT PASSED",
+    }
+
+    replace_text_everywhere(document, replacements)
+    replace_qc_table_placeholder(document, qc_assessment)
+
+    output = BytesIO()
+    document.save(output)
+    output.seek(0)
+
+    return output.getvalue()
 
 st.set_page_config(
     page_title="qPCR Pod Analysis",
@@ -489,6 +640,23 @@ if analysis_type == "QC pod":
             file_name="qc_pod_analysis.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
+        try:
+            word_report = create_qc_word_report_from_template(
+                qc_metadata=qc_metadata,
+                qc_assessment=qc_assessment,
+                overall_qc_passed=overall_qc_passed,
+            )
+
+            st.download_button(
+                "Download QC Word report",
+                data=word_report,
+                file_name=f"qc_pod_report_product_{product_number}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+        except FileNotFoundError as error:
+            st.warning(str(error))
 
 
 elif analysis_type == "Comparison within one pod":
