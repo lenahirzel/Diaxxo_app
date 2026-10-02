@@ -620,29 +620,61 @@ if analysis_type == "QC pod":
 
         st.header("Detection rate")
 
-        fig_det = px.bar(
-            detection_plot_df,
-            x="Assay",
-            y="QC_Detection_%",
-            color="QC_sample",
-            barmode="group",
-            text="QC_Detection_%",
-            title=f"Detection % by assay and QC sample ({channel})",
-        )
+        required_detection_columns = ["Assay", "QC_sample", "QC_Detection_%"]
+        missing_detection_columns = [
+            column
+            for column in required_detection_columns
+            if column not in detection_plot_df.columns
+        ]
 
-        fig_det.update_traces(
-            texttemplate="%{text:.1f}%",
-            textposition="inside",
-        )
+        if detection_plot_df.empty:
+            st.warning(f"No {channel} data available for the detection plot.")
 
-        fig_det.update_layout(
-            yaxis_title="Detection %",
-            xaxis_title="Assay",
-        )
+        elif missing_detection_columns:
+            st.warning(
+                "Cannot create the detection plot because the following column(s) are missing: "
+                + ", ".join(missing_detection_columns)
+                + f". Available columns: {', '.join(detection_plot_df.columns)}"
+            )
 
-        fig_det.update_yaxes(range=[0, 110])
+        else:
+            detection_plot_df = detection_plot_df.copy()
+            detection_plot_df["QC_Detection_%"] = pd.to_numeric(
+                detection_plot_df["QC_Detection_%"],
+                errors="coerce",
+            )
 
-        st.plotly_chart(fig_det, use_container_width=True)
+            detection_plot_df = detection_plot_df.dropna(
+                subset=["Assay", "QC_sample", "QC_Detection_%"]
+            )
+
+            if detection_plot_df.empty:
+                st.warning(f"No plottable detection data available for {channel}.")
+
+            else:
+                fig_det = px.bar(
+                    detection_plot_df,
+                    x="Assay",
+                    y="QC_Detection_%",
+                    color="QC_sample",
+                    barmode="group",
+                    text="QC_Detection_%",
+                    title=f"Detection % by assay and QC sample ({channel})",
+                )
+
+                fig_det.update_traces(
+                    texttemplate="%{text:.1f}%",
+                    textposition="inside",
+                )
+
+                fig_det.update_layout(
+                    yaxis_title="Detection %",
+                    xaxis_title="Assay",
+                )
+
+                fig_det.update_yaxes(range=[0, 110])
+
+                st.plotly_chart(fig_det, use_container_width=True)
 
         output = BytesIO()
 
