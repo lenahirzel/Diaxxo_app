@@ -21,11 +21,23 @@ def flatten_summary(summary, channel_name):
     flat = flat.reset_index()
     flat["Channel"] = channel_name
 
+    if "Loaded" not in flat.columns:
+        flat["Loaded"] = pd.Series(dtype="object")
+
+    if flat.empty:
+        flat["Concentration"] = pd.Series(dtype="object")
+        flat["Condition"] = pd.Series(dtype="object")
+        return flat
+
     # Extract metadata from Loaded name if formatted as 'conc_condition'
-    if "Loaded" in flat.columns:
-        parts = flat["Loaded"].astype(str).str.split("_", n=1, expand=True)
-        flat["Concentration"] = parts[0]
-        flat["Condition"] = parts[1] if parts.shape[1] > 1 else np.nan
+    parts = flat["Loaded"].astype(str).str.split("_", n=1, expand=True)
+
+    flat["Concentration"] = parts[0]
+
+    if parts.shape[1] > 1:
+        flat["Condition"] = parts[1]
+    else:
+        flat["Condition"] = np.nan
 
     return flat
 
