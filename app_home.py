@@ -25,7 +25,11 @@ from pod_to_pod_comparison_v2 import (
 )
 import plotly.express as px
 
-QC_WORD_TEMPLATE_PATH = Path(__file__).with_name("qc_report_template.docx")
+QC_WORD_TEMPLATE_PATH = (
+    Path(__file__).resolve().parent
+    / "templates"
+    / "SN8491_CoA-diaxxoPod-200_v1.docx"
+)
 
 def read_diaxxo_csv(uploaded_file):
     raw_text = uploaded_file.getvalue().decode("utf-8-sig", errors="replace")
