@@ -2,6 +2,7 @@ from io import BytesIO, StringIO
 import csv
 from pathlib import Path
 from docx import Document
+from docx.shared import Inches
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -150,7 +151,45 @@ def replace_text_everywhere(document, replacements):
 
 def insert_dataframe_after_paragraph(paragraph, dataframe):
     """Insert QC dataframe as a Word table directly after the given paragraph."""
-    table = paragraph._parent.add_table(rows=1, cols=len(dataframe.columns))
+    parent = paragraph._parent
+    column_count = len(dataframe.columns)
+
+    try:
+        table = parent.add_table(rows=1, cols=column_count)
+    except TypeError:
+        table = parent.add_table(rows=1, cols=column_count, width=Inches(6.5))
+
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.style = "Table Grid"
+
+    paragraph._p.addnext(table._tbl)
+
+    header_cells = table.rows[0].cells
+
+    for column_index, column_name in enumerate(dataframe.columns):
+        header_cells[column_index].text = str(column_name)
+        set_cell_background(header_cells[column_index], "D9EAF7")
+
+        for header_paragraph in header_cells[column_index].paragraphs:
+            for run in header_paragraph.runs:
+                run.bold = True
+
+    for _, dataframe_row in dataframe.iterrows():
+        row_cells = table.add_row().cells
+
+        qc_assessment = str(dataframe_row.get("QC assessment", "")).lower()
+
+        if qc_assessment == "passed":
+            row_color = "D4EDDA"
+        else:
+            row_color = "F8D7DA"
+
+        for column_index, column_name in enumerate(dataframe.columns):
+            row_cells[column_index].text = format_report_value(dataframe_row[column_name])
+            row_cells[column_index].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            set_cell_background(row_cells[column_index], row_color)
+
+    return table
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.style = "Table Grid"
 
